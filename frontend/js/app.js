@@ -1,5 +1,5 @@
 /**
- * FlowPad SPA 入口 - 侧边栏 + 路由
+ * FlowPad SPA 入口 - 侧边栏 + OOBE + 路由
  */
 (function() {
     // ====== 侧边栏收起/展开 ======
@@ -18,13 +18,39 @@
         localStorage.setItem(STORAGE_KEY, collapsed ? '1' : '0');
     }
 
-    // 恢复上次状态
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved === '1') setCollapsed(true);
 
     toggle.addEventListener('click', () => {
         setCollapsed(!sidebar.classList.contains('collapsed'));
     });
+
+    // ====== OOBE 检测: AP 模式强制配网页 ======
+    let inOOBE = false;
+
+    function enterOOBE() {
+        inOOBE = true;
+        sidebar.style.display = 'none';
+        location.hash = '#/wifi';
+        // 锁定 hash 为 /wifi
+        window.addEventListener('hashchange', _oobeGuard);
+    }
+
+    function _oobeGuard() {
+        if (inOOBE && location.hash !== '#/wifi') {
+            location.hash = '#/wifi';
+        }
+    }
+
+    // 启动时检测
+    fetch('/api/wifi/status')
+        .then(r => r.json())
+        .then(status => {
+            if (status.apMode) {
+                enterOOBE();
+            }
+        })
+        .catch(() => {});  // API 不可用时走正常路由
 
     // ====== 路由注册 ======
     Router.register('/',          (el) => Dashboard(el));

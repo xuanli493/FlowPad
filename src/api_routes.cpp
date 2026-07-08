@@ -223,6 +223,26 @@ void api_setup() {
         req->send(200, "application/json", out);
     });
 
+    // POST /api/wifi/rescan — AP 模式下重新扫描
+    server.on("/api/wifi/rescan", HTTP_POST, [](AsyncWebServerRequest* req) {
+        if (!apMode) {
+            req->send(400, "application/json", "{\"ok\":false,\"error\":\"not in AP mode\"}");
+            return;
+        }
+        wifi_rescan();
+        JsonDocument doc;
+        JsonArray arr = doc["networks"].to<JsonArray>();
+        for (int i = 0; i < scanCount; i++) {
+            JsonObject n = arr.add<JsonObject>();
+            n["ssid"]   = scanResults[i].ssid;
+            n["rssi"]   = scanResults[i].rssi;
+            n["secure"] = scanResults[i].secure;
+        }
+        doc["count"] = scanCount;
+        String out; serializeJson(doc, out);
+        req->send(200, "application/json", out);
+    });
+
     // GET /api/wifi/status — 当前 WiFi 状态
     server.on("/api/wifi/status", HTTP_GET, [](AsyncWebServerRequest* req) {
         JsonDocument doc;

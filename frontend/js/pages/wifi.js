@@ -1,7 +1,7 @@
 /**
  * 配网向导 - AP 模式选 WiFi + 输密码 → 连接重启
  */
-function WifiPage(container) {
+function Wifi(container) {
     let networks = [];
     let selectedSSID = '';
     let connecting = false;
@@ -147,11 +147,10 @@ function WifiPage(container) {
         const refresh = document.getElementById('btnRefresh');
         if (refresh) refresh.addEventListener('click', async () => {
             refresh.disabled = true;
-            refresh.textContent = '...';
+            refresh.textContent = '扫描中...';
             try {
-                const data = await API.getWifiScan();
+                const data = await API.rescanWifi();
                 networks = data.networks || [];
-                // 重新渲染
                 render();
             } catch (e) {
                 refresh.textContent = '失败';

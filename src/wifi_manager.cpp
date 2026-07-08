@@ -106,10 +106,13 @@ void wifi_init() {
             return;
         }
         Serial.println("\n[WiFi] FAILED → AP mode");
+        WiFi.disconnect(true);
+        delay(200);
     }
 
     // 扫描 + 开 AP
     WiFi.mode(WIFI_STA);
+    delay(200);
     wifi_scan();
     WiFi.mode(WIFI_AP);
     apMode = true;
@@ -125,6 +128,27 @@ void wifi_init() {
 bool wifi_is_connected() { return wifiConnected; }
 bool wifi_is_ap_mode()   { return apMode; }
 int  wifi_rssi()         { return wifiConnected ? WiFi.RSSI() : 0; }
+
+// ============================================================================
+// AP 模式下重新扫描 (临时切 STA → 扫描 → 切回 AP)
+// ============================================================================
+bool wifi_rescan() {
+    if (!apMode) return false;
+    Serial.println("[WiFi] re-scanning (AP→STA→AP)...");
+    WiFi.softAPdisconnect(true);
+    WiFi.mode(WIFI_STA);
+    delay(200);
+    bool ok = wifi_scan();
+    WiFi.mode(WIFI_AP);
+    if (apPass.length() > 0) {
+        WiFi.softAP(apSSID.c_str(), apPass.c_str());
+    } else {
+        WiFi.softAP(apSSID.c_str());
+    }
+    Serial.printf("[WiFi] re-scan done, %d nets, AP back at %s\n",
+                  scanCount, WiFi.softAPIP().toString().c_str());
+    return ok;
+}
 
 String wifi_local_ip() {
     return apMode ? WiFi.softAPIP().toString() : WiFi.localIP().toString();
