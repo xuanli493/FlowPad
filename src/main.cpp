@@ -19,8 +19,8 @@ CRGB         leds[NUM_LEDS];
 
 bool   wifiConnected = false;
 bool   apMode        = false;
-String wifiSSID      = "zhang_C3D8";
-String wifiPass      = "zyp981429";
+String wifiSSID      = "";
+String wifiPass      = "";
 String apSSID        = "FlowPad-Setup";
 String apPass        = "12345678";
 WifiNetwork scanResults[MAX_SCAN_NETWORKS];
