@@ -47,6 +47,9 @@ const API = (() => {
     function getWifiStatus()  { return get('/api/wifi/status'); }
     function connectWifi(ssid, pass) { return post('/api/wifi/connect', {ssid, pass}); }
 
+    // --- 恢复出厂 ---
+    function factoryReset()   { return post('/api/factory/reset'); }
+
     return {
         get, post,
         getStatus, getWeight, getTime,
@@ -54,6 +57,7 @@ const API = (() => {
         getHistory,
         setLed,
         getSettings, setSettings,
-        getWifiScan, getWifiStatus, connectWifi
+        getWifiScan, getWifiStatus, connectWifi,
+        factoryReset
     };
 })();

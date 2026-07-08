@@ -194,6 +194,18 @@ void api_setup() {
         req->send(404, "text/plain", "404");
     });
 
+    // --- 恢复出厂设置 ---
+    server.on("/api/factory/reset", HTTP_POST, [](AsyncWebServerRequest* req) {
+        LittleFS.remove(FILE_SETTINGS);
+        LittleFS.remove(FILE_CALIB);
+        LittleFS.remove(FILE_DRINKS);
+        LittleFS.remove(FILE_WIFI);
+        Serial.println("[FACTORY] all config deleted, restarting...");
+        req->send(200, "application/json", "{\"ok\":true,\"restart\":true}");
+        delay(200);
+        ESP.restart();
+    });
+
     // --- 配网 API ---
 
     // GET /api/wifi/scan — 返回缓存的扫描结果

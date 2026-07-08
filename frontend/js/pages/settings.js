@@ -61,6 +61,14 @@ function Settings(container) {
             </div>
 
             <p class="page-footer">设置自动保存到设备 \u00B7 断电不丢失</p>
+
+            <div class="card" style="margin-top:24px;border:1px solid #ffd3d3">
+                <h2 style="color:#cc0000">危险操作</h2>
+                <p style="font-size:13px;color:var(--text-dim);margin-bottom:12px">
+                    清除所有校准数据、喝水记录、WiFi 配置和设置，恢复出厂状态。
+                </p>
+                <button class="btn btn-danger" id="btnReset">恢复出厂设置</button>
+            </div>
         `;
 
         // 初始化当前模式
@@ -107,6 +115,25 @@ function Settings(container) {
         document.getElementById('ledMode').addEventListener('change', async e => {
             await API.post('/api/led', { mode: e.target.value });
         });
+
+        // 恢复出厂
+        const btnR = document.getElementById('btnReset');
+        if (btnR) {
+            btnR.addEventListener('click', () => {
+                if (btnR.textContent === '确认重置?') {
+                    btnR.disabled = true;
+                    btnR.textContent = '重置中...';
+                    API.factoryReset().catch(() => {});
+                } else {
+                    btnR.textContent = '确认重置?';
+                    btnR.style.background = '#cc0000';
+                    setTimeout(() => {
+                        btnR.textContent = '恢复出厂设置';
+                        btnR.style.background = '';
+                    }, 3000);
+                }
+            });
+        }
     }
 
     function showToast(msg) {
