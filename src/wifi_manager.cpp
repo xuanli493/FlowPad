@@ -5,7 +5,7 @@
 // ============================================================================
 bool wifi_scan() {
     Serial.print("[WiFi] Scanning... ");
-    int n = WiFi.scanNetworks(false, true, false, WIFI_SCAN_SEC * 1000U);
+    int n = WiFi.scanNetworks(false, true, false, WIFI_SCAN_PER_CHAN_MS);
     Serial.printf("%d networks\n", n);
 
     scanCount = 0;
@@ -107,12 +107,12 @@ void wifi_init() {
         }
         Serial.println("\n[WiFi] FAILED → AP mode");
         WiFi.disconnect(true);
-        delay(200);
+        delay(500);
     }
 
     // 扫描 + 开 AP
     WiFi.mode(WIFI_STA);
-    delay(200);
+    delay(500);
     wifi_scan();
     WiFi.mode(WIFI_AP);
     apMode = true;
@@ -128,15 +128,6 @@ void wifi_init() {
 bool wifi_is_connected() { return wifiConnected; }
 bool wifi_is_ap_mode()   { return apMode; }
 int  wifi_rssi()         { return wifiConnected ? WiFi.RSSI() : 0; }
-
-// ============================================================================
-// AP 模式下重新扫描 (C3 在 AP 模式下可直接扫描，不需要切模式)
-// ============================================================================
-bool wifi_rescan() {
-    if (!apMode) return false;
-    Serial.println("[WiFi] re-scanning...");
-    return wifi_scan();
-}
 
 String wifi_local_ip() {
     return apMode ? WiFi.softAPIP().toString() : WiFi.localIP().toString();

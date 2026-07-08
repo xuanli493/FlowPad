@@ -47,12 +47,9 @@ function Wifi(container) {
 
                 <div class="form-group">
                     <label class="form-label">WiFi 网络</label>
-                    <div style="display:flex;gap:8px">
-                        <select id="wifiSelect" class="form-input" style="flex:1">
-                            <option value="">选择网络...</option>
-                        </select>
-                        <button id="btnRefresh" class="btn btn-sm">刷新</button>
-                    </div>
+                    <select id="wifiSelect" class="form-input" style="width:100%">
+                        <option value="">选择网络...</option>
+                    </select>
                     <div style="font-size:11px;color:var(--text-hint);margin-top:4px" id="scanInfo">
                         ${networks.length} 个网络可用
                     </div>
@@ -87,7 +84,7 @@ function Wifi(container) {
                      background:#fff0f0;color:#c00;font-size:13px;text-align:center"></div>
 
                 <p style="color:var(--text-hint);font-size:11px;text-align:center;margin-top:16px">
-                    设备已扫描附近网络保存到本地<br>选择后输入密码，自动重启连接
+                    网络列表来自设备启动时扫描<br>如列表为空，请重启设备后重试
                 </p>
             </div>
         `;
@@ -166,20 +163,6 @@ function Wifi(container) {
                 statusDiv.style.display = 'none';
                 err.style.display = '';
                 err.textContent = '连接失败: ' + e.message;
-            }
-        });
-
-        const refresh = document.getElementById('btnRefresh');
-        if (refresh) refresh.addEventListener('click', async () => {
-            refresh.disabled = true;
-            refresh.textContent = '扫描中...';
-            try {
-                const data = await API.rescanWifi();
-                networks = data.networks || [];
-                render();
-            } catch (e) {
-                refresh.textContent = '失败';
-                setTimeout(() => { refresh.textContent = '刷新'; refresh.disabled = false; }, 1500);
             }
         });
     }

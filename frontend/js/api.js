@@ -45,7 +45,6 @@ const API = (() => {
     // --- 配网 ---
     function getWifiScan()    { return get('/api/wifi/scan'); }
     function getWifiStatus()  { return get('/api/wifi/status'); }
-    function rescanWifi()     { return post('/api/wifi/rescan'); }
     function connectWifi(ssid, pass) { return post('/api/wifi/connect', {ssid, pass}); }
 
     // --- 恢复出厂 ---
@@ -58,7 +57,7 @@ const API = (() => {
         getHistory,
         setLed,
         getSettings, setSettings,
-        getWifiScan, getWifiStatus, rescanWifi, connectWifi,
+        getWifiScan, getWifiStatus, connectWifi,
         factoryReset
     };
 })();
