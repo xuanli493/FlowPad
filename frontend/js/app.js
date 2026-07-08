@@ -30,6 +30,7 @@
 
     function enterOOBE() {
         inOOBE = true;
+        document.body.classList.add('oobe-mode');
         sidebar.style.display = 'none';
         location.hash = '#/wifi';
         // 锁定 hash 为 /wifi

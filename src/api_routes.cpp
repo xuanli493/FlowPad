@@ -201,8 +201,11 @@ void api_setup() {
         LittleFS.remove(FILE_DRINKS);
         LittleFS.remove(FILE_WIFI);
         Serial.println("[FACTORY] all config deleted, restarting...");
-        req->send(200, "application/json", "{\"ok\":true,\"restart\":true}");
-        delay(200);
+        AsyncWebServerResponse* rsp = req->beginResponse(200, "application/json",
+            "{\"ok\":true,\"restart\":true}");
+        rsp->addHeader("Connection", "close");
+        req->send(rsp);
+        delay(500);
         ESP.restart();
     });
 
@@ -269,8 +272,11 @@ void api_setup() {
                 const char* pass = doc["pass"] | "";
                 if (strlen(ssid) > 0) {
                     wifi_save_config(ssid, pass);
-                    req->send(200, "application/json", "{\"ok\":true,\"restart\":true}");
-                    delay(200);
+                    AsyncWebServerResponse* rsp = req->beginResponse(200, "application/json",
+                        "{\"ok\":true,\"restart\":true}");
+                    rsp->addHeader("Connection", "close");
+                    req->send(rsp);
+                    delay(500);
                     ESP.restart();
                 } else {
                     req->send(400, "application/json", "{\"ok\":false,\"error\":\"no ssid\"}");

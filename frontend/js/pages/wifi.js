@@ -47,11 +47,11 @@ function Wifi(container) {
 
                 <div class="form-group">
                     <label class="form-label">WiFi 网络</label>
-                    <div class="wifi-select-wrap">
-                        <select id="wifiSelect" class="form-input" style="width:100%">
+                    <div style="display:flex;gap:8px">
+                        <select id="wifiSelect" class="form-input" style="flex:1">
                             <option value="">选择网络...</option>
                         </select>
-                        <button id="btnRefresh" class="btn btn-sm" style="margin-left:8px">刷新</button>
+                        <button id="btnRefresh" class="btn btn-sm">刷新</button>
                     </div>
                     <div style="font-size:11px;color:var(--text-hint);margin-top:4px" id="scanInfo">
                         ${networks.length} 个网络可用
@@ -62,21 +62,32 @@ function Wifi(container) {
                     <label class="form-label">密码</label>
                     <input type="password" id="wifiPassword" class="form-input"
                            placeholder="请输入 WiFi 密码" style="width:100%">
-                    <div style="display:flex;align-items:center;margin-top:6px">
-                        <input type="checkbox" id="showPass" style="margin-right:6px">
-                        <label for="showPass" style="font-size:12px;color:var(--text-hint)">显示密码</label>
-                    </div>
+                    <label style="display:inline-flex;align-items:center;margin-top:6px;cursor:pointer;
+                                  font-size:12px;color:var(--text-hint);gap:4px">
+                        <input type="checkbox" id="showPass">
+                        显示密码
+                    </label>
                 </div>
 
                 <button id="btnConnect" class="btn btn-block" disabled>
                     连接
                 </button>
 
+                <div id="connectStatus" style="display:none;margin-top:12px;padding:16px;
+                     border-radius:8px;background:#f0f7ff;text-align:center">
+                    <p style="font-size:14px;color:var(--primary)">设备正在重启...</p>
+                    <p style="font-size:24px;font-weight:700;color:var(--primary);margin:8px 0"
+                       id="countdown">--</p>
+                    <p style="font-size:12px;color:var(--text-hint)">
+                        重启后请重新连接到新的 WiFi 网络访问设备
+                    </p>
+                </div>
+
                 <div id="connectError" style="display:none;margin-top:12px;padding:10px;border-radius:8px;
                      background:#fff0f0;color:#c00;font-size:13px;text-align:center"></div>
 
                 <p style="color:var(--text-hint);font-size:11px;text-align:center;margin-top:16px">
-                    设备将扫描附近网络保存到本地<br>选择后输入密码，自动重启连接
+                    设备已扫描附近网络保存到本地<br>选择后输入密码，自动重启连接
                 </p>
             </div>
         `;
@@ -100,6 +111,8 @@ function Wifi(container) {
         const pwGroup = document.getElementById('passwordGroup');
         const btn = document.getElementById('btnConnect');
         const err = document.getElementById('connectError');
+        const statusDiv = document.getElementById('connectStatus');
+        const cd = document.getElementById('countdown');
 
         if (sel) sel.addEventListener('change', () => {
             selectedSSID = sel.value;
@@ -124,21 +137,33 @@ function Wifi(container) {
         if (btn) btn.addEventListener('click', async () => {
             if (connecting) return;
             connecting = true;
-            btn.disabled = true;
-            btn.textContent = '连接中...';
+            btn.style.display = 'none';
             err.style.display = 'none';
+            statusDiv.style.display = '';
+
+            // 倒计时
+            let remaining = 30;
+            cd.textContent = remaining + 's';
+            const timer = setInterval(() => {
+                remaining--;
+                if (remaining <= 0) {
+                    clearInterval(timer);
+                    cd.textContent = '请刷新页面';
+                } else {
+                    cd.textContent = remaining + 's';
+                }
+            }, 1000);
 
             try {
                 await API.connectWifi(selectedSSID, pwd.value);
-                // ESP.restart() 会断开连接, 这里不会收到响应
-                btn.textContent = '设备重启中...';
-                setTimeout(() => {
-                    btn.textContent = '请重新连接 WiFi 访问设备';
-                }, 2000);
+                // ESP.restart() 会断开, 可能收不到响应
+                clearInterval(timer);
+                cd.textContent = '请重新连接 WiFi 访问设备';
             } catch (e) {
+                clearInterval(timer);
                 connecting = false;
-                btn.disabled = false;
-                btn.textContent = '连接';
+                btn.style.display = '';
+                statusDiv.style.display = 'none';
                 err.style.display = '';
                 err.textContent = '连接失败: ' + e.message;
             }
