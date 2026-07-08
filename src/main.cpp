@@ -22,7 +22,7 @@ bool   apMode        = false;
 String wifiSSID      = "";
 String wifiPass      = "";
 String apSSID        = "FlowPad-Setup";
-String apPass        = "12345678";
+String apPass        = "";
 WifiNetwork scanResults[MAX_SCAN_NETWORKS];
 int scanCount = 0;
 

@@ -114,7 +114,11 @@ void wifi_init() {
     WiFi.mode(WIFI_AP);
     apMode = true;
 
-    WiFi.softAP(apSSID.c_str(), apPass.c_str());
+    if (apPass.length() > 0) {
+        WiFi.softAP(apSSID.c_str(), apPass.c_str());
+    } else {
+        WiFi.softAP(apSSID.c_str());
+    }
     Serial.printf("[WiFi] AP IP=%s\n", WiFi.softAPIP().toString().c_str());
 }
 
