@@ -131,39 +131,28 @@ function Wifi(container) {
             pwd.type = showP.checked ? 'text' : 'password';
         });
 
-        if (btn) btn.addEventListener('click', async () => {
+        if (btn) btn.addEventListener('click', () => {
             if (connecting) return;
             connecting = true;
             btn.style.display = 'none';
             err.style.display = 'none';
             statusDiv.style.display = '';
 
-            // 倒计时
-            let remaining = 30;
+            // Fire-and-forget: 设备必然重启, fetch 必然失败
+            API.connectWifi(selectedSSID, pwd.value);
+
+            // 纯前端倒计时 8 秒
+            let remaining = 8;
             cd.textContent = remaining + 's';
             const timer = setInterval(() => {
                 remaining--;
-                if (remaining <= 0) {
-                    clearInterval(timer);
-                    cd.textContent = '请刷新页面';
-                } else {
+                if (remaining > 0) {
                     cd.textContent = remaining + 's';
+                } else {
+                    clearInterval(timer);
+                    cd.textContent = '请重新连接 WiFi 访问设备';
                 }
             }, 1000);
-
-            try {
-                await API.connectWifi(selectedSSID, pwd.value);
-                // ESP.restart() 会断开, 可能收不到响应
-                clearInterval(timer);
-                cd.textContent = '请重新连接 WiFi 访问设备';
-            } catch (e) {
-                clearInterval(timer);
-                connecting = false;
-                btn.style.display = '';
-                statusDiv.style.display = 'none';
-                err.style.display = '';
-                err.textContent = '连接失败: ' + e.message;
-            }
         });
     }
 

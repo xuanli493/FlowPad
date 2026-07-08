@@ -16,8 +16,6 @@ const API = (() => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data || {})
         });
-        // wifi/connect 会重启设备, 可能没有响应
-        if (path === '/api/wifi/connect') return { ok: true };
         if (!res.ok) throw new Error('HTTP ' + res.status);
         return await res.json();
     }
@@ -45,7 +43,11 @@ const API = (() => {
     // --- 配网 ---
     function getWifiScan()    { return get('/api/wifi/scan'); }
     function getWifiStatus()  { return get('/api/wifi/status'); }
-    function connectWifi(ssid, pass) { return post('/api/wifi/connect', {ssid, pass}); }
+    function connectWifi(ssid, pass) {
+        // C3 restart 会杀掉 WiFi, fetch 必然失败
+        // 忽略错误, 前端自己维护倒计时
+        return post('/api/wifi/connect', {ssid, pass}).catch(() => ({ ok: true, restart: true }));
+    }
 
     // --- 恢复出厂 ---
     function factoryReset()   { return post('/api/factory/reset'); }
