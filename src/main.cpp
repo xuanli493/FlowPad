@@ -10,6 +10,7 @@
 #include "drink_state.h"
 #include "api_routes.h"
 #include "esp_sleep.h"
+#define ELEGANTOTA_USE_ASYNC_WEBSERVER 1
 #include <ElegantOTA.h>
 
 // ============================================================================
