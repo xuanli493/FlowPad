@@ -6,9 +6,11 @@
 
 const fs = require('fs');
 const path = require('path');
+const zlib = require('zlib');
 
 const BASE = path.join(__dirname, '..', 'frontend');
 const OUT  = path.join(__dirname, '..', 'data', 'www', 'index.html');
+const OUT_GZ = path.join(__dirname, '..', 'data', 'www', 'index.html.gz');
 
 // 读取文件
 let html = fs.readFileSync(path.join(BASE, 'index.html'), 'utf-8');
@@ -61,15 +63,20 @@ html = html.replace(/<!--[\s\S]*?-->/g, '');
 // 写入输出
 fs.writeFileSync(OUT, html, 'utf-8');
 
+// gzip 压缩
+const gzipped = zlib.gzipSync(html, { level: 9 });
+fs.writeFileSync(OUT_GZ, gzipped);
+
 const origSize = getDirSize(BASE);
 const outSize = Buffer.byteLength(html, 'utf-8');
+const gzipSize = gzipped.length;
 
 console.log('========================================');
 console.log('  FlowPad Frontend Build');
 console.log('========================================');
-console.log(`  Source:  frontend/  (${fmtSize(origSize)})`);
-console.log(`  Output:  data/www/index.html  (${fmtSize(outSize)})`);
-console.log(`  Ratio:   ${(outSize / origSize * 100).toFixed(1)}%`);
+console.log(`  Source:   frontend/  (${fmtSize(origSize)})`);
+console.log(`  Output:   index.html  (${fmtSize(outSize)})`);
+console.log(`  Gzipped:  index.html.gz  (${fmtSize(gzipSize)} · ${(gzipSize / outSize * 100).toFixed(1)}%)`);
 console.log('========================================');
 
 function getDirSize(dir) {

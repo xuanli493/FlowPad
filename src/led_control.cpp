@@ -8,11 +8,18 @@ uint32_t led_parse_hex(const String& hex) {
 }
 
 void led_init() {
+    // LED MOSFET 供电引脚 (GPIO2 HIGH = 灯带通电)
+    pinMode(PIN_LED_POWER, OUTPUT);
+    led_power_on();
+
     FastLED.addLeds<WS2812B, PIN_LEDS, GRB>(leds, NUM_LEDS);
     FastLED.setBrightness(128);
     FastLED.clear(true);
-    Serial.printf("[LED] GPIO%d, %d LEDs\n", PIN_LEDS, NUM_LEDS);
+    Serial.printf("[LED] GPIO%d, %d LEDs, power=%d\n", PIN_LEDS, NUM_LEDS, PIN_LED_POWER);
 }
+
+void led_power_on()  { digitalWrite(PIN_LED_POWER, HIGH); }
+void led_power_off() { digitalWrite(PIN_LED_POWER, LOW);  }
 
 void led_set(const String& mode, CRGB color, int brightness) {
     ledModeStr   = mode;

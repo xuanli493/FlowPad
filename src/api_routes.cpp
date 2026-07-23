@@ -24,10 +24,20 @@ static String _build_status_json() {
 }
 
 void api_setup() {
-    // --- 静态文件 ---
+    // --- 静态文件 (支持 gzip) ---
     server.on("/", HTTP_GET, [](AsyncWebServerRequest* req) {
-        if (LittleFS.exists("/www/index.html")) {
-            req->send(LittleFS, "/www/index.html", "text/html");
+        bool gzip = req->header("Accept-Encoding").indexOf("gzip") >= 0;
+        if (gzip && LittleFS.exists("/www/index.html.gz")) {
+            AsyncWebServerResponse* rsp = req->beginResponse(
+                LittleFS, "/www/index.html.gz", "text/html");
+            rsp->addHeader("Content-Encoding", "gzip");
+            rsp->addHeader("Cache-Control", "max-age=3600");
+            req->send(rsp);
+        } else if (LittleFS.exists("/www/index.html")) {
+            AsyncWebServerResponse* rsp = req->beginResponse(
+                LittleFS, "/www/index.html", "text/html");
+            rsp->addHeader("Cache-Control", "max-age=3600");
+            req->send(rsp);
         } else {
             req->send(200, "text/plain", "SPA not uploaded\n");
         }
@@ -134,6 +144,17 @@ void api_setup() {
         req->send(200, "application/json", out);
     });
 
+    // --- POST /api/calibrate/reset (重新校准) ---
+    server.on("/api/calibrate/reset", HTTP_POST, [](AsyncWebServerRequest* req) {
+        calibState      = CALIB_NONE;
+        calibZeroOffset = 0;
+        calibTareG      = 0;
+        calibFullRefG   = 0;
+        storage_save_calib();
+        Serial.println("[CALIB] reset");
+        req->send(200, "application/json", "{\"ok\":true}");
+    });
+
     // --- POST /api/led ---
     server.on("/api/led", HTTP_POST,
         [](AsyncWebServerRequest* req) { req->send(200, "application/json", "{\"ok\":true}"); },
@@ -189,10 +210,6 @@ void api_setup() {
             }
         }
     );
-
-    server.onNotFound([](AsyncWebServerRequest* req) {
-        req->send(404, "text/plain", "404");
-    });
 
     // --- 恢复出厂设置 ---
     server.on("/api/factory/reset", HTTP_POST, [](AsyncWebServerRequest* req) {
@@ -265,6 +282,9 @@ void api_setup() {
         }
     );
 
-    server.begin();
-    Serial.println("[HTTP] started on :80");
+    server.onNotFound([](AsyncWebServerRequest* req) {
+        req->send(404, "text/plain", "404");
+    });
+
+    // server.begin() 已移至 main.cpp (ElegantOTA 之后调用)
 }

@@ -9,6 +9,14 @@
 #include "ntp_time.h"
 #include "drink_state.h"
 #include "api_routes.h"
+#include "esp_sleep.h"
+#include <ElegantOTA.h>
+
+// ============================================================================
+// RTC 持久化 (深度睡眠不丢失)
+// ============================================================================
+RTC_DATA_ATTR bool rtc_away_mode = false;       // 是否从 AWAY 深度睡眠醒来
+RTC_DATA_ATTR int  rtc_boot_count = 0;
 
 // ============================================================================
 // 全局变量定义
@@ -70,7 +78,70 @@ unsigned long lastDrinkAt = 0;
 void setup() {
     Serial.begin(115200, SERIAL_8N1, 20, 21);
     delay(500);
+
+    rtc_boot_count++;
+    esp_sleep_wakeup_cause_t wakeCause = esp_sleep_get_wakeup_cause();
+
     Serial.println("\n========================================");
+    Serial.printf("  FlowPad boot #%d (cause=%d, away=%d)\n",
+                   rtc_boot_count, (int)wakeCause, rtc_away_mode);
+    Serial.println("========================================");
+
+    // ---- AWAY 模式快速唤醒检测 ----
+    if (rtc_away_mode && wakeCause == ESP_SLEEP_WAKEUP_TIMER) {
+        // 快速初始化 HX711, 不做完整启动
+        pinMode(PIN_HX711_SCK, OUTPUT);
+        digitalWrite(PIN_HX711_SCK, LOW);  // 唤醒 HX711
+        delay(2);
+
+        // 等待首次转换完成 (DT 变低)
+        pinMode(PIN_HX711_DT, INPUT);
+        unsigned long start = millis();
+        while (digitalRead(PIN_HX711_DT) == HIGH) {
+            if (millis() - start > 200) break;
+        }
+
+        if (digitalRead(PIN_HX711_DT) == LOW) {
+            // 读一次原始值判断有无杯子
+            long raw = 0;
+            for (int i = 0; i < 24; i++) {
+                digitalWrite(PIN_HX711_SCK, HIGH);
+                delayMicroseconds(1);
+                raw = (raw << 1) | digitalRead(PIN_HX711_DT);
+                digitalWrite(PIN_HX711_SCK, LOW);
+                delayMicroseconds(1);
+            }
+            // 第 25 个脉冲设置增益
+            digitalWrite(PIN_HX711_SCK, HIGH);
+            delayMicroseconds(1);
+            digitalWrite(PIN_HX711_SCK, LOW);
+
+            // 补码转换
+            if (raw & 0x800000) raw |= 0xFF000000;
+            float grams = ((float)raw - calibZeroOffset) / calibFactor;
+
+            float threshold = calibTareG * 0.3f;
+            if (threshold < 10) threshold = 10;
+
+            if (grams > threshold) {
+                Serial.printf("[AWAY] cup detected (%.1fg > %.1f), resuming...\n", grams, threshold);
+                rtc_away_mode = false;
+                ESP.restart();  // 完整重启
+            }
+        }
+
+        // 仍然空载 → 关 HX711, 继续睡
+        pinMode(PIN_HX711_SCK, OUTPUT);
+        digitalWrite(PIN_HX711_SCK, HIGH);
+        delayMicroseconds(70);
+
+        Serial.printf("[AWAY] still empty, sleeping %ds...\n", AWAY_WAKE_SEC);
+        esp_sleep_enable_timer_wakeup((uint64_t)AWAY_WAKE_SEC * 1000000ULL);
+        esp_deep_sleep_start();
+        // unreachable
+    }
+
+    // ---- 正常启动 ----
     Serial.println("  FlowPad Phase 4 — calibration + drink");
     Serial.println("========================================");
 
@@ -79,7 +150,7 @@ void setup() {
     storage_load_settings();
     storage_load_calib();
     storage_load_drinks();
-    wifi_load_config();   // 加载保存的 WiFi (有则用, 无则 AP)
+    wifi_load_config();
 
     hx711_init();
     wifi_init();
@@ -87,6 +158,28 @@ void setup() {
 
     drink_state_init();
     api_setup();
+
+    // OTA 固件升级
+    ElegantOTA.begin(&server);
+    server.begin();
+    Serial.println("[HTTP] started on :80");
+
+    ElegantOTA.onStart([]() {
+        // OTA 开始时关灯
+        led_set("solid", CRGB(50, 0, 50), 32);
+    });
+
+    ElegantOTA.onProgress([](size_t cur, size_t total) {
+        static unsigned long last = 0;
+        if (millis() - last > 2000) {
+            last = millis();
+            Serial.printf("[OTA] %u%%\n", (unsigned)(cur * 100 / total));
+        }
+    });
+
+    ElegantOTA.onEnd([](bool success) {
+        if (success) led_set("solid", CRGB(0, 50, 0), 64);
+    });
 
     // 启动指示灯
     if (calibState != CALIB_DONE) {
@@ -102,6 +195,19 @@ void setup() {
 // LOOP
 // ============================================================================
 void loop() {
+    // --- AWAY 深度睡眠入口 ---
+    if (drinkState == STATE_AWAY) {
+        Serial.println("[AWAY] entering deep sleep...");
+        hx711_power_down();
+        led_power_off();
+        rtc_away_mode = true;
+        delay(50);
+
+        esp_sleep_enable_timer_wakeup((uint64_t)AWAY_WAKE_SEC * 1000000ULL);
+        esp_deep_sleep_start();
+        // unreachable
+    }
+
     if (!timeSynced) ntp_sync();
     drink_check_day_rollover();
     hx711_update();
@@ -113,6 +219,9 @@ void loop() {
     }
 
     led_update();
+
+    // OTA 心跳
+    ElegantOTA.loop();
 
     static unsigned long lastStatus = 0;
     if (millis() - lastStatus >= 30000) {

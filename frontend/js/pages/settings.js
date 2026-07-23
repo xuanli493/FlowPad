@@ -14,6 +14,13 @@ function Settings(container) {
                     <label>每日目标 (ml)</label>
                     <input type="number" id="targetMl" value="${data.targetMl}" min="500" max="10000" step="100">
                 </div>
+                <div class="led-presets" style="margin-top:4px;gap:6px">
+                    <button class="preset-btn" data-ml="800"  style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid #d0d0d5;background:#fff;cursor:pointer">儿童 800</button>
+                    <button class="preset-btn" data-ml="1200" style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid #d0d0d5;background:#fff;cursor:pointer">少年 1200</button>
+                    <button class="preset-btn" data-ml="1500" style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid #d0d0d5;background:#fff;cursor:pointer">青少年 1500</button>
+                    <button class="preset-btn" data-ml="2000" style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid #d0d0d5;background:#fff;cursor:pointer">成人 2000</button>
+                    <button class="preset-btn" data-ml="3000" style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid #d0d0d5;background:#fff;cursor:pointer">运动员 3000</button>
+                </div>
             </div>
 
             <div class="card">
@@ -62,6 +69,14 @@ function Settings(container) {
 
             <p class="page-footer">设置自动保存到设备 \u00B7 断电不丢失</p>
 
+            <div class="card" style="margin-top:24px">
+                <h2>固件升级</h2>
+                <p style="font-size:13px;color:var(--text-dim);margin-bottom:12px">
+                    上传新固件 (.bin) 进行 OTA 无线升级。
+                </p>
+                <a href="/update" class="btn btn-outline" style="text-decoration:none">打开升级页面</a>
+            </div>
+
             <div class="card" style="margin-top:24px;border:1px solid #ffd3d3">
                 <h2 style="color:#cc0000">危险操作</h2>
                 <p style="font-size:13px;color:var(--text-dim);margin-bottom:12px">
@@ -109,6 +124,13 @@ function Settings(container) {
                 const c = p.dataset.color;
                 document.getElementById('ledColor').value = '#' + c;
                 document.getElementById('ledColorHex').textContent = '#' + c;
+            });
+        });
+
+        // 年龄段预设
+        container.querySelectorAll('.preset-btn').forEach(b => {
+            b.addEventListener('click', () => {
+                document.getElementById('targetMl').value = b.dataset.ml;
             });
         });
 

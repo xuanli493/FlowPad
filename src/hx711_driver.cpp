@@ -1,6 +1,7 @@
 #include "hx711_driver.h"
 
 static bool _initialized = false;
+static bool _powered_down = false;
 
 void hx711_init() {
     Serial.print("[HX711] Init... ");
@@ -12,11 +13,12 @@ void hx711_init() {
     LoadCell.start(2000);
     LoadCell.setCalFactor(calibFactor);
     _initialized = true;
+    _powered_down = false;
     Serial.printf("OK (factor=%.1f)\n", calibFactor);
 }
 
 bool hx711_update() {
-    if (!_initialized) return false;
+    if (!_initialized || _powered_down) return false;
     if (!LoadCell.update()) return false;
 
     float raw = LoadCell.getData();
@@ -54,4 +56,37 @@ float hx711_sample_average(int samples, unsigned long timeoutMs) {
 void hx711_set_factor(float f) {
     calibFactor = f;
     LoadCell.setCalFactor(f);
+}
+
+// ============================================================================
+// PD_SCK 休眠控制 (HX711 内置 <1µA 休眠)
+// ============================================================================
+void hx711_power_down() {
+    if (_powered_down) return;
+    // 暂停库的连续读数 (下次 update 会跳过)
+    // 然后拉高 SCK >60µs 触发 HX711 休眠
+    pinMode(PIN_HX711_SCK, OUTPUT);
+    digitalWrite(PIN_HX711_SCK, HIGH);
+    delayMicroseconds(70);
+    _powered_down = true;
+    Serial.println("[HX711] powered down");
+}
+
+void hx711_power_up() {
+    if (!_powered_down) return;
+    // 拉低 SCK 唤醒 HX711, 芯片自动开始一次新转换
+    digitalWrite(PIN_HX711_SCK, LOW);
+    delayMicroseconds(5);
+
+    // 等待 DT 变低 (转换完成), 超时 100ms
+    unsigned long start = millis();
+    while (digitalRead(PIN_HX711_DT) == HIGH) {
+        if (millis() - start > 100) {
+            Serial.println("[HX711] wake timeout");
+            _powered_down = false;
+            return;
+        }
+    }
+    _powered_down = false;
+    Serial.println("[HX711] powered up");
 }

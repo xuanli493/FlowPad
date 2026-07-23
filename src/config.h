@@ -14,6 +14,7 @@
 // ============================================================================
 #define PIN_LEDS       7
 #define NUM_LEDS       23
+#define PIN_LED_POWER  2     // AO3401 P-MOS 灯带供电 (GPIO2 HIGH=开)
 #define PIN_HX711_DT   4
 #define PIN_HX711_SCK  6
 
@@ -35,7 +36,8 @@
 #define DRINK_THRESHOLD_G    20
 #define STRAW_THRESHOLD_G    50
 #define PICKUP_TIMEOUT_MS    120000
-#define AWAY_TIMEOUT_MS      1800000
+#define AWAY_TIMEOUT_MS      1800000   // EMPTY 30分钟 → AWAY
+#define AWAY_WAKE_SEC        30        // AWAY 模式每 30 秒醒一次
 #define STABILITY_WINDOW_MS  2000
 #define STABILITY_MAX_VAR_G  10
 #define MERGE_WINDOW_MS      30000
@@ -53,6 +55,7 @@ enum DrinkState : uint8_t {
     STATE_PICKED_UP,
     STATE_STRAW_DRINK,
     STATE_EMPTY,
+    STATE_AWAY,
 };
 
 enum CalibState : uint8_t {

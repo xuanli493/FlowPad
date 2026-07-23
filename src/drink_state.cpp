@@ -214,8 +214,16 @@ void drink_state_update() {
             drinkState = STATE_IDLE;
             Serial.printf("[STATE] EMPTY → IDLE (tare=%.1fg)\n", calibTareG);
         }
+        if (millis() - stateEnteredAt > AWAY_TIMEOUT_MS) {
+            drinkState = STATE_AWAY;
+            Serial.println("[STATE] EMPTY → AWAY (30min timeout, entering deep sleep)");
+        }
         break;
     }
+
+    case STATE_AWAY:
+        // AWAY 状态由 main.cpp 的 deep sleep 逻辑接管, 这里不做处理
+        break;
 
     default: break;
     }

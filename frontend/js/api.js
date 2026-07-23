@@ -28,6 +28,7 @@ const API = (() => {
     // --- 校准 ---
     function calibrateStep1()  { return post('/api/calibrate/step1'); }
     function calibrateStep2()  { return post('/api/calibrate/step2'); }
+    function resetCalib()      { return post('/api/calibrate/reset'); }
     function getCalibState()   { return get('/api/calibrate'); }
 
     // --- 喝水历史 ---
@@ -55,7 +56,7 @@ const API = (() => {
     return {
         get, post,
         getStatus, getWeight, getTime,
-        calibrateStep1, calibrateStep2, getCalibState,
+        calibrateStep1, calibrateStep2, resetCalib, getCalibState,
         getHistory,
         setLed,
         getSettings, setSettings,

@@ -1,4 +1,5 @@
 #include "wifi_manager.h"
+#include "led_control.h"
 
 // ============================================================================
 // 扫描
@@ -106,6 +107,7 @@ void wifi_init() {
             return;
         }
         Serial.println("\n[WiFi] FAILED → AP mode");
+        led_flash(CRGB(255, 0, 0), 2, 200);  // 红快闪 2 次
         WiFi.disconnect(true);
         delay(500);
     }
@@ -123,6 +125,9 @@ void wifi_init() {
         WiFi.softAP(apSSID.c_str());
     }
     Serial.printf("[WiFi] AP IP=%s\n", WiFi.softAPIP().toString().c_str());
+
+    // AP 模式黄呼吸灯效
+    led_set("breathe", CRGB(255, 200, 0), 64);
 }
 
 bool wifi_is_connected() { return wifiConnected; }

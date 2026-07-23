@@ -120,7 +120,10 @@ function Calibrate(container) {
         }
 
         if (btnR) {
-            btnR.addEventListener('click', () => {
+            btnR.addEventListener('click', async () => {
+                btnR.disabled = true;
+                btnR.textContent = '重置中...';
+                try { await API.resetCalib(); } catch (e) {}
                 step = 1;
                 if (weightTimer) clearInterval(weightTimer);
                 render();
