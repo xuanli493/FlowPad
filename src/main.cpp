@@ -160,27 +160,20 @@ void setup() {
     drink_state_init();
     api_setup();
 
-    // OTA 固件升级
-    ElegantOTA.begin(&server);
-    server.begin();
-    Serial.println("[HTTP] started on :80");
-
+    // OTA 固件升级 (回调必须在 begin() 之前设置)
     ElegantOTA.onStart([]() {
-        // OTA 开始时关灯
         led_set("solid", CRGB(50, 0, 50), 32);
     });
-
     ElegantOTA.onProgress([](size_t cur, size_t total) {
-        static unsigned long last = 0;
-        if (millis() - last > 2000) {
-            last = millis();
-            Serial.printf("[OTA] %u%%\n", (unsigned)(cur * 100 / total));
-        }
+        Serial.printf("[OTA] %u%%\n", (unsigned)(cur * 100 / total));
     });
-
     ElegantOTA.onEnd([](bool success) {
         if (success) led_set("solid", CRGB(0, 50, 0), 64);
     });
+    ElegantOTA.begin(&server);
+
+    server.begin();
+    Serial.printf("[HTTP] started on :80 (heap=%u)\n", ESP.getFreeHeap());
 
     // 启动指示灯
     if (calibState != CALIB_DONE) {
