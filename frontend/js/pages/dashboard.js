@@ -64,10 +64,16 @@ function Dashboard(container) {
                 <h2>今日详情</h2>
                 <div id="todayEvents"></div>
             </div>
+
+            <div class="card" id="aiCard">
+                <h2>AI 饮水分析</h2>
+                <div id="aiContent"></div>
+            </div>
         `;
 
         refresh();
         refreshTimer = setInterval(refresh, 3000);
+        initAiCard();
     }
 
     async function refresh() {
@@ -187,6 +193,93 @@ function Dashboard(container) {
                   fill="#c0c0c5" font-size="9">${streak[0].target}ml</text>
             ${bars}
         </svg>`;
+    }
+
+    function initAiCard() {
+        const el = document.getElementById('aiContent');
+        if (!el) return;
+        const cached = AI.getCachedResult();
+        const cfg = AI.loadConfig();
+        if (cached) {
+            el.innerHTML = `<div class="ai-result">${renderAiMarkdown(cached.text)}</div>` +
+                           renderAiFooter(cached.time);
+            document.getElementById('aiCard').classList.add('ai-has-result');
+            bindReanalyze();
+        } else if (!cfg.apiKey || !cfg.model) {
+            el.innerHTML = `<div class="ai-placeholder">
+                <p>配置 AI 后，分析你的喝水习惯</p>
+                <button class="btn btn-outline" onclick="location.hash='#/settings'">去设置</button>
+            </div>`;
+        } else {
+            el.innerHTML = `<div class="ai-placeholder">
+                <p>已配置模型 <strong>${cfg.model}</strong></p>
+                <button class="btn" id="btnAiAnalyze">分析我的喝水习惯</button>
+            </div>`;
+            document.getElementById('btnAiAnalyze').addEventListener('click', doAiAnalyze);
+        }
+    }
+
+    function bindReanalyze() {
+        const btn = document.getElementById('btnAiReanalyze');
+        if (btn) btn.addEventListener('click', doAiAnalyze);
+    }
+
+    function renderAiFooter(time) {
+        return `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
+            <span style="font-size:11px;color:var(--text-hint)">分析时间: ${fmtAiTime(time)}</span>
+            <button class="btn btn-outline" id="btnAiReanalyze" style="font-size:12px;padding:6px 14px">重新分析</button>
+        </div>`;
+    }
+
+    function fmtAiTime(iso) {
+        try {
+            const d = new Date(iso);
+            return d.toLocaleString('zh-CN');
+        } catch { return iso || ''; }
+    }
+
+    function renderAiMarkdown(text) {
+        return text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\n/g, '<br>')
+            .replace(/<br>\s*<br>/g, '</p><p>')
+            .replace(/^/, '<p>')
+            .replace(/$/, '</p>');
+    }
+
+    async function doAiAnalyze() {
+        const el = document.getElementById('aiContent');
+        const btn = document.getElementById('btnAiAnalyze');
+        if (!el || !btn) return;
+        btn.disabled = true;
+        btn.textContent = '分析中...';
+
+        // 收集数据
+        try {
+            const history = await API.getHistory();
+            const today = history.today || {};
+
+            const drinkData = {
+                targetMl: today.target || 2000,
+                todayMl: today.totalMl || 0,
+                eventsToday: today.list || [],
+                streak: history.streak || []
+            };
+
+            const result = await AI.analyze(drinkData);
+            el.innerHTML = `<div class="ai-result">${renderAiMarkdown(result.text)}</div>` +
+                           renderAiFooter(result.time);
+            document.getElementById('aiCard').classList.add('ai-has-result');
+            bindReanalyze();
+        } catch (e) {
+            el.innerHTML = `<div class="ai-error">
+                <p>${e.message}</p>
+                <button class="btn btn-outline" onclick="location.reload()" style="font-size:12px;padding:6px 14px">重试</button>
+            </div>`;
+        }
     }
 
     function fmtUptime(s) {

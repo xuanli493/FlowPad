@@ -24,6 +24,41 @@ function Settings(container) {
             </div>
 
             <div class="card">
+                <h2>AI 分析</h2>
+                <p style="font-size:12px;color:var(--text-hint);margin-bottom:14px">
+                    配置后可在仪表盘查看 AI 饮水分析。API Key 仅存储于本浏览器。
+                </p>
+                <div class="form-group">
+                    <label>模型提供商</label>
+                    <select id="aiProvider">
+                        <option value="openai">OpenAI</option>
+                        <option value="deepseek">DeepSeek</option>
+                        <option value="qwen">通义千问</option>
+                        <option value="custom">自定义</option>
+                    </select>
+                </div>
+                <div class="form-group" id="aiEndpointGroup" style="display:none">
+                    <label>API Base URL</label>
+                    <input type="text" id="aiEndpoint" placeholder="https://your-api.example.com/v1">
+                </div>
+                <div class="form-group">
+                    <label>API Key</label>
+                    <div style="display:flex;gap:8px">
+                        <input type="password" id="aiApiKey" placeholder="sk-..." style="flex:1">
+                        <button class="btn btn-outline" id="btnFetchModels" style="padding:10px 14px;font-size:13px;white-space:nowrap">获取模型</button>
+                    </div>
+                </div>
+                <div class="form-group" id="aiModelGroup" style="display:none">
+                    <label>选择模型</label>
+                    <select id="aiModel"></select>
+                </div>
+                <div id="aiStatus" style="font-size:12px;color:var(--text-dim);margin-top:4px"></div>
+                <div class="btn-group" style="justify-content:flex-end">
+                    <button class="btn btn-outline" id="btnClearAiResult" style="font-size:12px;padding:8px 14px">清除分析缓存</button>
+                </div>
+            </div>
+
+            <div class="card">
                 <h2>提醒</h2>
                 <div class="form-group">
                     <label>提醒间隔 (分钟)</label>
@@ -137,6 +172,95 @@ function Settings(container) {
         document.getElementById('ledMode').addEventListener('change', async e => {
             await API.post('/api/led', { mode: e.target.value });
         });
+
+        // ====== AI 配置事件 ======
+        const aiCfg = AI.loadConfig();
+        const aiProv = document.getElementById('aiProvider');
+        const aiKey  = document.getElementById('aiApiKey');
+        const aiEp   = document.getElementById('aiEndpoint');
+        const aiEpG  = document.getElementById('aiEndpointGroup');
+        const aiMod  = document.getElementById('aiModel');
+        const aiModG = document.getElementById('aiModelGroup');
+        const aiStat = document.getElementById('aiStatus');
+
+        // 恢复已保存的配置
+        if (aiProv) aiProv.value = aiCfg.provider;
+        if (aiKey)  aiKey.value  = aiCfg.apiKey || '';
+        if (aiEp)   aiEp.value   = aiCfg.endpoint || '';
+        toggleCustomEndpoint();
+
+        // 提供商切换
+        if (aiProv) aiProv.addEventListener('change', () => {
+            toggleCustomEndpoint();
+            aiModG.style.display = 'none';
+            aiStat.textContent = '';
+        });
+
+        function toggleCustomEndpoint() {
+            const v = aiProv.value;
+            aiEpG.style.display = (v === 'custom') ? '' : 'none';
+        }
+
+        // 获取模型列表
+        document.getElementById('btnFetchModels').addEventListener('click', async () => {
+            const provider = aiProv.value;
+            const apiKey   = aiKey.value.trim();
+            if (!apiKey) { aiStat.textContent = '请先填写 API Key'; return; }
+
+            // 保存当前配置
+            const cfg = {
+                provider,
+                apiKey,
+                endpoint: provider === 'custom' ? aiEp.value.trim() : AI.PROVIDERS[provider].base,
+                model: ''
+            };
+            AI.saveConfig(cfg);
+
+            aiStat.textContent = '正在获取模型列表...';
+            document.getElementById('btnFetchModels').disabled = true;
+            try {
+                const models = await AI.fetchModels(provider, apiKey, cfg.endpoint);
+                const prevModel = AI.loadConfig().model;
+                aiMod.innerHTML = models.map(m =>
+                    '<option value="' + m + '"' + (m === prevModel ? ' selected' : '') + '>' + m + '</option>'
+                ).join('');
+                aiModG.style.display = '';
+                aiStat.textContent = '已获取 ' + models.length + ' 个模型';
+                // 如果有之前的选中且匹配，自动保存
+                if (prevModel && models.includes(prevModel)) {
+                    cfg.model = prevModel;
+                    AI.saveConfig(cfg);
+                } else if (models.length > 0) {
+                    cfg.model = models[0];
+                    AI.saveConfig(cfg);
+                }
+            } catch (e) {
+                aiStat.textContent = e.message;
+            }
+            document.getElementById('btnFetchModels').disabled = false;
+        });
+
+        // 模型切换自动保存
+        if (aiMod) aiMod.addEventListener('change', () => {
+            const cfg = AI.loadConfig();
+            cfg.model = aiMod.value;
+            AI.saveConfig(cfg);
+            aiStat.textContent = '已保存';
+            setTimeout(() => { if (aiStat.textContent === '已保存') aiStat.textContent = ''; }, 1500);
+        });
+
+        // 清除分析缓存
+        document.getElementById('btnClearAiResult').addEventListener('click', () => {
+            AI.clearResult();
+            aiStat.textContent = '分析缓存已清除';
+            setTimeout(() => { if (aiStat.textContent === '分析缓存已清除') aiStat.textContent = ''; }, 1500);
+        });
+
+        // 如果有保存的模型，展示模型下拉
+        if (aiCfg.model && aiCfg.apiKey) {
+            aiMod.innerHTML = '<option value="' + aiCfg.model + '" selected>' + aiCfg.model + '</option>';
+            aiModG.style.display = '';
+        }
 
         // 恢复出厂
         const btnR = document.getElementById('btnReset');

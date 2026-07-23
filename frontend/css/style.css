@@ -625,6 +625,44 @@ body {
 }
 
 /* ================================================================
+   AI 分析
+   ================================================================ */
+
+.ai-placeholder {
+    text-align: center;
+    padding: 20px 0 8px;
+}
+
+.ai-placeholder p {
+    font-size: 14px;
+    color: var(--text-dim);
+    margin-bottom: 14px;
+}
+
+.ai-result p {
+    font-size: 14px;
+    line-height: 1.75;
+    color: var(--text);
+    margin-bottom: 10px;
+}
+
+.ai-result strong {
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.ai-error {
+    text-align: center;
+    padding: 16px 0;
+}
+
+.ai-error p {
+    font-size: 13px;
+    color: var(--danger);
+    margin-bottom: 10px;
+}
+
+/* ================================================================
    移动端适配
    ================================================================ */
 
