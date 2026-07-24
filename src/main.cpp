@@ -77,6 +77,10 @@ unsigned long lastDrinkAt = 0;
 // SETUP
 // ============================================================================
 void setup() {
+    // === 必须第一时间关灯带，否则 23 颗 WS2812B 静态电流 > 1A 触发 BROWNOUT_RST ===
+    pinMode(PIN_LED_POWER, OUTPUT);
+    digitalWrite(PIN_LED_POWER, LOW);
+
     Serial.begin(115200, SERIAL_8N1, 20, 21);
     delay(500);
 
