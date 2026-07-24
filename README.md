@@ -141,4 +141,4 @@ UNKNOWN → IDLE → PICKED_UP → (喝水/接水/忽略) → IDLE
 
 ## 许可证
 
-MIT
+GPL 3.0
